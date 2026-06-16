@@ -28,4 +28,12 @@ public class Task extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id",nullable = false)
     private Workspace workspace;
+
+    public void changeTitle(String title) {
+        if (title == null || title.isBlank()){
+            //TODO: throw custom and specific exception
+            throw new IllegalArgumentException("Task title must not be blank");
+        }
+        this.title = title;
+    }
 }
