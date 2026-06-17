@@ -27,4 +27,17 @@ public abstract class BaseEntity {
 
     @Version
     private Long version;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BaseEntity that)) return false;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        // To generate a constant number for every instance.
+        return getClass().hashCode();
+    }
 }
