@@ -1,6 +1,6 @@
 package com.prep.taskpulse.domain.task.entity;
 
-import com.prep.taskpulse.common.BaseEntity;
+import com.prep.taskpulse.domain.common.BaseEntity;
 import com.prep.taskpulse.domain.task.enums.TaskPriority;
 import com.prep.taskpulse.domain.task.enums.TaskStatus;
 import com.prep.taskpulse.domain.workspace.entity.Workspace;

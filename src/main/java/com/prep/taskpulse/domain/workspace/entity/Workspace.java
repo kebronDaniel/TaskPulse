@@ -1,6 +1,6 @@
 package com.prep.taskpulse.domain.workspace.entity;
 
-import com.prep.taskpulse.common.BaseEntity;
+import com.prep.taskpulse.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
