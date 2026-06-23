@@ -39,6 +39,7 @@ public class Task extends BaseEntity {
     @Column(nullable = false)
     private TaskPriority priority = TaskPriority.MEDIUM;
     private Instant dueDate;
+    private Instant deletedAt;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id",nullable = false)
     private Project project;
