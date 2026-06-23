@@ -1,7 +1,7 @@
 package com.prep.taskpulse.domain.task.service;
 
 import com.prep.taskpulse.domain.task.dto.TaskResponse;
-import com.prep.taskpulse.domain.task.entity.Task;
+import com.prep.taskpulse.domain.task.Task;
 import com.prep.taskpulse.domain.task.mapper.TaskMapper;
 import com.prep.taskpulse.domain.task.repository.TaskRepository;
 import com.prep.taskpulse.exception.TaskNotFoundException;
@@ -21,11 +21,5 @@ public class TaskService {
     public TaskResponse findById(UUID id){
         Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
         return taskMapper.toResponse(task);
-    }
-
-    @Transactional
-    public void updateTitle(UUID id, String title) {
-        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
-        task.changeTitle(title);
     }
 }
