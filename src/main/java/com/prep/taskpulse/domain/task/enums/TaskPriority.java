@@ -1,5 +1,5 @@
 package com.prep.taskpulse.domain.task.enums;
 
 public enum TaskPriority {
-    LOW, MEDIUM, HIGH
+    LOW, MEDIUM, HIGH, CRITICAL
 }
