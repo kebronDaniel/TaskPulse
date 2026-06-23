@@ -3,7 +3,6 @@ package com.prep.taskpulse.domain.workspace;
 import com.prep.taskpulse.domain.common.BaseEntity;
 import com.prep.taskpulse.domain.user.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

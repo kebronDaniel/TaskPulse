@@ -5,7 +5,6 @@ import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.task.enums.TaskPriority;
 import com.prep.taskpulse.domain.task.enums.TaskStatus;
 import com.prep.taskpulse.domain.user.User;
-import com.prep.taskpulse.domain.workspace.Workspace;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
