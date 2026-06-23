@@ -12,9 +12,4 @@ import java.util.UUID;
 
 // uses specifications : it allows dynamic filters(optional and composable)
 public interface TaskRepository extends JpaRepository<Task, UUID>, JpaSpecificationExecutor<Task> {
-    Page<Task> findByTaskStatus(TaskStatus taskStatus, Pageable pageable);
-    // relationship traversal
-    List<Task> findByWorkspace_Name(String workspaceName);
-    // combining filters
-    List<Task> findByWorkspace_NameAndTaskStatus(String workspaceName, TaskStatus taskStatus);
 }
