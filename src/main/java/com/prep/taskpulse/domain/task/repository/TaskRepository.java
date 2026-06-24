@@ -1,15 +1,14 @@
 package com.prep.taskpulse.domain.task.repository;
 
 import com.prep.taskpulse.domain.task.Task;
-import com.prep.taskpulse.domain.task.enums.TaskStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-// uses specifications : it allows dynamic filters(optional and composable)
-public interface TaskRepository extends JpaRepository<Task, UUID>, JpaSpecificationExecutor<Task> {
+public interface TaskRepository extends JpaRepository<Task, UUID> {
+    Optional<Task> findByIdAndProjectIdAndDeletedAtIsNull(UUID id, UUID projectId);
+    List<Task> findByProjectIdAndDeletedAtIsNull(UUID projectId);
+    boolean existsByIdAndProjectIdAndDeletedAtIsNull(UUID id, UUID projectId);
 }
