@@ -1,6 +1,7 @@
 package com.prep.taskpulse.domain.common;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.hibernate.Hibernate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -10,6 +11,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+@Getter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {

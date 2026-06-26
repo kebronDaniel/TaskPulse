@@ -19,7 +19,7 @@ import java.time.Instant;
 @Table(name = "tasks")
 public class Task extends BaseEntity {
 
-    private Task(String title, String description, Project project) {
+    private Task(String title, String description, Project project, TaskPriority priority, Instant dueDate) {
 
         if (title == null || title.isBlank()) throw new IllegalArgumentException("Title must not be blank");
         if (project == null) throw new IllegalArgumentException("Project must not be null");
@@ -27,6 +27,8 @@ public class Task extends BaseEntity {
         this.title = title;
         this.description = description;
         this.project = project;
+        this.priority = priority != null? priority : TaskPriority.MEDIUM;
+        this.dueDate = dueDate;
     }
 
     @Column(nullable = false)
@@ -47,12 +49,13 @@ public class Task extends BaseEntity {
     @JoinColumn(name = "assignee_id")
     private User assignee;
 
-    public static Task create(String title, String description, Project project){
-        return new Task(title,description,project);
+    public static Task create(String title, String description, Project project, TaskPriority priority, Instant dueDate){
+        return new Task(title,description,project,priority,dueDate);
     }
 
     public void changeStatus(TaskStatus status){
         if (status == null) throw new IllegalArgumentException("Status must not be null");
+        if (this.status == TaskStatus.DONE && status == TaskStatus.TODO) throw new IllegalArgumentException("Completed task cannot be reopened directly");
         this.status = status;
     }
 
@@ -81,5 +84,10 @@ public class Task extends BaseEntity {
 
     public void changeDescription(String description){
         this.description = description;
+    }
+
+    public void softDelete(){
+        if (this.deletedAt != null) throw new IllegalArgumentException("Task is already deleted");
+        this.deletedAt = Instant.now();
     }
 }
