@@ -2,9 +2,11 @@ package com.prep.taskpulse.exception;
 
 import java.time.Instant;
 
-public record ErrorResponse (
+public record ApiErrorResponse(
         Instant timestamp,
         int status,
-        String message
+        String error,
+        String message,
+        String path
 ){
 }
