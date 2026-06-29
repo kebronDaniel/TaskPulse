@@ -86,7 +86,7 @@ public class Task extends BaseEntity {
         this.description = description;
     }
 
-    public void softDelete(){
+    public void deleteTask(){
         if (this.deletedAt != null) throw new IllegalArgumentException("Task is already deleted");
         this.deletedAt = Instant.now();
     }
