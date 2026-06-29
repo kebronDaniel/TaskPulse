@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -31,14 +32,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception, HttpServletRequest httpServletRequest){
-        ApiErrorResponse errorResponse = new ApiErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "request validation error", // you can use map to get the exact field from the exception.
-                httpServletRequest.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    public ResponseEntity<ValidationErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception, HttpServletRequest httpServletRequest){
+        List<FieldErrorResponse> fieldErrors = exception.getBindingResult().
+                getFieldErrors().stream().map(error ->
+                        new FieldErrorResponse(error.getField(), error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value")).toList();
+
+        ValidationErrorResponse validationErrorResponse = new ValidationErrorResponse(Instant.now(),HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(), "Validation Failed",httpServletRequest.getRequestURI(),
+                fieldErrors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationErrorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleUnexpectedException(Exception exception, HttpServletRequest request){
+        return ResponseEntity.internalServerError().body(new ApiErrorResponse(Instant.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                "An unexpected error occurred", request.getRequestURI()));
     }
 }
