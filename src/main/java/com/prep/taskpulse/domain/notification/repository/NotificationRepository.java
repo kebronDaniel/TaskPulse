@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
-    Optional<Notification> findByIdAndOwnerId(UUID id, UUID ownerId);
-    List<Notification> findByOwnerId(UUID ownerId);
-    boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
+    Optional<Notification> findByIdAndRecipientId(UUID id, UUID recipientId);
+    List<Notification> findByRecipientId(UUID recipientId);
+    boolean existsByIdAndRecipientId(UUID id, UUID recipientId);
 }
