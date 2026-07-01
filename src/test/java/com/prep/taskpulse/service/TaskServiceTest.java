@@ -42,7 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
 
-    private UUID mockUserUUID;
     private UUID mockWorkspaceUUID;
     private UUID mockProjectUUID;
     private User mockUser;
@@ -64,7 +63,6 @@ class TaskServiceTest {
 
     @BeforeEach
     void setup(){
-        mockUserUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         mockWorkspaceUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174111");
         mockProjectUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174222");
         mockUser = User.createUser("testUser","test@gmail.com","12345678", Role.USER);
