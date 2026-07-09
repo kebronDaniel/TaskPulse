@@ -4,6 +4,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -49,5 +50,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.internalServerError().body(new ApiErrorResponse(Instant.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "An unexpected error occurred", request.getRequestURI()));
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleEmailAlreadyExistsException(EmailAlreadyExistsException exception, HttpServletRequest httpServletRequest){
+        ApiErrorResponse response = new ApiErrorResponse(Instant.now()
+                ,HttpStatus.CONFLICT.value(),HttpStatus.CONFLICT.getReasonPhrase(),
+                exception.getMessage(),httpServletRequest.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadCredentialsException(BadCredentialsException exception,HttpServletRequest request){
+        ApiErrorResponse response = new ApiErrorResponse(Instant.now(),
+                HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                exception.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 }
