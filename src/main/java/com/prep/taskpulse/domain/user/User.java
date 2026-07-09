@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Getter
@@ -18,6 +20,7 @@ public class User extends BaseEntity {
     private String email;
     @Column(nullable = false)
     private String passwordHash;
+    private Instant deletedAt;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
@@ -64,5 +67,10 @@ public class User extends BaseEntity {
             throw new IllegalArgumentException("password hash must not be blank");
         }
         this.passwordHash = passwordHash;
+    }
+
+    public void deleteUser(){
+        if (this.deletedAt != null) this.deletedAt = Instant.now();
+        else throw new IllegalArgumentException("User already deleted");
     }
 }
