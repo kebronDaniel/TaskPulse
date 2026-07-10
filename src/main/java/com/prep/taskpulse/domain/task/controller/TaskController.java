@@ -2,12 +2,14 @@ package com.prep.taskpulse.domain.task.controller;
 
 import com.prep.taskpulse.domain.task.dto.CreateTaskRequest;
 import com.prep.taskpulse.domain.task.dto.TaskResponse;
+import com.prep.taskpulse.domain.task.dto.TaskSearchCriteria;
 import com.prep.taskpulse.domain.task.dto.UpdateTaskRequest;
 import com.prep.taskpulse.domain.task.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +34,11 @@ public class TaskController {
     }
 
     @GetMapping("/{taskId}")
-    public ResponseEntity<TaskResponse> getTask(@PathVariable UUID workspaceId, @PathVariable UUID projectId,
+    @ResponseStatus(HttpStatus.OK)
+    public TaskResponse getTask(@PathVariable UUID workspaceId, @PathVariable UUID projectId,
                                 @PathVariable UUID taskId){
         TaskResponse taskResponse = taskService.getTask(workspaceId,projectId,taskId);
-        return ResponseEntity.ok(taskResponse);
+        return taskResponse;
     }
 
     @PatchMapping("/{taskId}")
@@ -58,4 +61,11 @@ public class TaskController {
         Page<TaskResponse> taskResponses = taskService.getTasksByProject(workspaceId,projectId,pageable);
         return ResponseEntity.ok(taskResponses);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<TaskResponse>> searchTasks(@PathVariable UUID workspaceId, @PathVariable UUID projectId,
+                                                          @ModelAttribute TaskSearchCriteria criteria, Pageable pageable){
+        return ResponseEntity.ok(taskService.searchTasks(workspaceId,projectId,criteria,pageable));
+    }
+
 }
