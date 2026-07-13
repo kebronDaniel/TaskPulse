@@ -8,6 +8,7 @@ import com.prep.taskpulse.domain.task.mapper.TaskMapper;
 import com.prep.taskpulse.domain.task.repository.TaskRepository;
 import com.prep.taskpulse.domain.task.repository.TaskSpecifications;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
+import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -17,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.UUID;
 
 
@@ -56,11 +58,15 @@ public class TaskService {
         Task task = taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(taskId, projectId)
                 .orElseThrow(() -> new TaskNotFoundException(taskId));
 
+        if (!Objects.equals(request.version(), task.getVersion()))
+            throw new StaleTaskVersionException(taskId,request.version(),task.getVersion());
+
         if (request.title() != null) task.rename(request.title());
         if (request.description() != null) task.changeDescription(request.description());
         if (request.priority() != null) task.changePriority(request.priority());
         if (request.dueDate() != null) task.reschedule(request.dueDate());
 
+        taskRepository.flush();
         return taskMapper.toResponse(task);
     }
 
@@ -76,6 +82,8 @@ public class TaskService {
     }
 
     public Page<TaskResponse> getTasksByProject(UUID workspaceId, UUID projectId, Pageable pageable){
+        projectRepository.findByIdAndWorkspaceId(projectId,workspaceId)
+                .orElseThrow(() -> new ProjectNotFoundException(projectId));
         Page<Task> tasks = taskRepository.findByProjectIdAndDeletedAtIsNull(projectId,pageable);
         return tasks.map(taskMapper::toResponse);
     }
