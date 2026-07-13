@@ -8,6 +8,7 @@ public record UpdateTaskRequest(
         String title,
         String description,
         TaskPriority priority,
-        Instant dueDate
+        Instant dueDate,
+        Long version // for optimistic locking (stale client update)
 ) {
 }
