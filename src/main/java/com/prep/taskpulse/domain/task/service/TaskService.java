@@ -1,5 +1,6 @@
 package com.prep.taskpulse.domain.task.service;
 
+import com.prep.taskpulse.config.CacheConfig;
 import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.project.repository.ProjectRepository;
 import com.prep.taskpulse.domain.task.Task;
@@ -11,7 +12,8 @@ import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,6 +43,7 @@ public class TaskService {
         return taskMapper.toResponse(savedTask);
     }
 
+    @Cacheable(cacheNames = CacheConfig.TASK_CACHE, key = "#taskId", sync = true)
     public TaskResponse getTask(UUID workspaceId, UUID projectId, UUID taskId){
         projectRepository.findByIdAndWorkspaceId(projectId, workspaceId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
@@ -50,6 +53,7 @@ public class TaskService {
         return taskMapper.toResponse(savedTask);
     }
 
+    @CacheEvict(cacheNames = CacheConfig.TASK_CACHE, key = "#taskId")
     @Transactional
     public TaskResponse updateTask(UUID workspaceId, UUID projectId, UUID taskId,UpdateTaskRequest request){
         projectRepository.findByIdAndWorkspaceId(projectId,workspaceId)
@@ -70,6 +74,7 @@ public class TaskService {
         return taskMapper.toResponse(task);
     }
 
+    @CacheEvict(cacheNames = CacheConfig.TASK_CACHE, key = "#taskId")
     @Transactional
     public void deleteTask(UUID workspaceId, UUID projectId, UUID taskId){
         projectRepository.findByIdAndWorkspaceId(projectId,workspaceId)
