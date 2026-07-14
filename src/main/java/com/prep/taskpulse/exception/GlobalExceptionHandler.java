@@ -2,6 +2,7 @@ package com.prep.taskpulse.exception;
 
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.kafka.shaded.com.google.protobuf.Api;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -66,5 +67,13 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(),
                 exception.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(StaleTaskVersionException.class)
+    public ResponseEntity<ApiErrorResponse> handleStaleTaskVersionException(StaleTaskVersionException exception, HttpServletRequest request){
+        ApiErrorResponse response = new ApiErrorResponse(Instant.now(),
+                HttpStatus.CONFLICT.value(),HttpStatus.CONFLICT.getReasonPhrase(),
+                exception.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }

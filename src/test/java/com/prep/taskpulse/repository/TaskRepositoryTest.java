@@ -62,14 +62,14 @@ public class TaskRepositoryTest {
 
 
     @Test
-    void findByIdAndProjectIdAndDeletedAtIsNull_whenTaskActive_returnsTask(){
+    void findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskActive_returnsTask(){
 
         Task mockTask = Task.create("test task","test task description"
                 ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
         mockTask.assignTo(savedUser);
         Task savedTask = taskRepository.save(mockTask);
 
-        Optional<Task> task = taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
+        Optional<Task> task = taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
 
         assertThat(task).isNotNull();
         assertThat(task.get().getTitle()).isEqualTo(savedTask.getTitle());
@@ -83,7 +83,7 @@ public class TaskRepositoryTest {
     }
 
     @Test
-    void findByIdAndProjectIdAndDeletedAtIsNull_whenTaskSoftDeleted_returnsEmpty(){
+    void findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskSoftDeleted_returnsEmpty(){
 
         Task mockTask = Task.create("test task","test task description"
                 ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
@@ -91,7 +91,7 @@ public class TaskRepositoryTest {
         mockTask.deleteTask();
         Task savedTask = taskRepository.save(mockTask);
 
-        Optional<Task> task = taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
+        Optional<Task> task = taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
         assertThat(savedTask.getDeletedAt()).isNotNull();
         assertThat(task).isEmpty();
     }

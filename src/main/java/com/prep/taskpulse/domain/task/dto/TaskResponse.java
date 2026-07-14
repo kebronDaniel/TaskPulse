@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public record TaskResponse(UUID id, String title,
                            String description, TaskStatus status,
-                           TaskPriority priority, Instant dueDate) {}
+                           TaskPriority priority, Instant dueDate,
+                           Long version) {}

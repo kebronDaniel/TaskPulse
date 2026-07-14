@@ -9,11 +9,16 @@ import com.prep.taskpulse.domain.task.enums.TaskPriority;
 import com.prep.taskpulse.domain.task.enums.TaskStatus;
 import com.prep.taskpulse.domain.task.service.TaskService;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
+import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
+import com.prep.taskpulse.security.jwt.JwtService;
+import com.prep.taskpulse.security.service.TaskFlowUserDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -36,6 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TaskController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class TaskControllerTest {
 
     @Autowired
@@ -46,6 +52,12 @@ public class TaskControllerTest {
 
     @MockitoBean
     private TaskService taskService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private TaskFlowUserDetailsService taskFlowUserDetailsService;
 
     private UUID mockWorkspaceUUID;
     private UUID mockProjectUUID;
@@ -70,13 +82,12 @@ public class TaskControllerTest {
         CreateTaskRequest request = new CreateTaskRequest("mock title","mock description",
                 TaskPriority.MEDIUM, dueDate);
         TaskResponse response = new TaskResponse(mockTaskUUID, request.title(), request.description(),
-                TaskStatus.TODO,request.priority(),dueDate);
+                TaskStatus.TODO,request.priority(),dueDate,0L);
 
         Mockito.when(taskService.createTask(mockWorkspaceUUID,mockProjectUUID,request)).thenReturn(response);
 
         mockMvc.perform(post(baseUrl,mockWorkspaceUUID,mockProjectUUID).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
-                        .with(csrf()))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(response.id().toString()))
@@ -91,7 +102,7 @@ public class TaskControllerTest {
 
     @Test
     @WithMockUser
-    void createTask_whenProjectDoesNotExist_returns400NotFound() throws Exception{
+    void createTask_whenProjectDoesNotExist_returns404NotFound() throws Exception{
 
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         Instant dueDate = Instant.now().plus(Duration.ofDays(2));
@@ -121,7 +132,7 @@ public class TaskControllerTest {
     void getTask_whenRequestIsValid_returns200Ok() throws Exception{
 
         TaskResponse response = new TaskResponse(mockTaskUUID,"mock title","mock description",
-                TaskStatus.TODO,TaskPriority.MEDIUM, Instant.now());
+                TaskStatus.TODO,TaskPriority.MEDIUM, Instant.now(),0L);
         Mockito.when(taskService.getTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID)).thenReturn(response);
 
         mockMvc.perform(get(baseUrl+"/{taskId}",mockWorkspaceUUID,mockProjectUUID,mockTaskUUID))
@@ -179,10 +190,10 @@ public class TaskControllerTest {
     void updateTask_whenRequestIsValid_returns200Ok() throws Exception{
 
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",null
-                ,TaskPriority.LOW,null);
+                ,TaskPriority.LOW,null,0L);
         TaskResponse response = new TaskResponse(mockTaskUUID, request.title(),
                 "original description",TaskStatus.TODO,
-                request.priority(),Instant.now());
+                request.priority(),Instant.now(),1L);
         Mockito.when(taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request))
                 .thenReturn(response);
 
@@ -205,7 +216,7 @@ public class TaskControllerTest {
     void updateTask_whenProjectDoesNotExist_returns400NotFound() throws Exception{
 
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",null
-                ,TaskPriority.LOW,null);
+                ,TaskPriority.LOW,null,0L);
         ProjectNotFoundException exception = new ProjectNotFoundException(mockProjectUUID);
         Mockito.when(taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request)).thenThrow(exception);
 
@@ -227,8 +238,8 @@ public class TaskControllerTest {
     void updateTask_whenTaskDoesNotExist_returns400NotFound() throws Exception{
 
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",null
-                ,TaskPriority.LOW,null);
-        TaskNotFoundException exception = new TaskNotFoundException(mockProjectUUID);
+                ,TaskPriority.LOW,null,0L);
+        TaskNotFoundException exception = new TaskNotFoundException(mockTaskUUID);
         Mockito.when(taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request)).thenThrow(exception);
 
         mockMvc.perform(patch(baseUrl + "/{taskId}", mockWorkspaceUUID,mockProjectUUID,mockTaskUUID)
@@ -242,6 +253,23 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$.message").value(exception.getMessage()));
 
         verify(taskService,Mockito.times(1)).updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request);
+    }
+
+    @Test
+    @WithMockUser
+    void updateTask_whenVersionIsStale_returns409Conflict() throws Exception{
+
+        UpdateTaskRequest request = new UpdateTaskRequest("updated title",null
+                ,TaskPriority.LOW,null,0L);
+        StaleTaskVersionException exception = new StaleTaskVersionException(mockTaskUUID,1L,0L);
+        Mockito.when(taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request)).thenThrow(exception);
+
+        mockMvc.perform(patch(baseUrl+"/{taskId}", mockWorkspaceUUID,mockProjectUUID, mockTaskUUID)
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
+                .andExpect(jsonPath("$.error").value(HttpStatus.CONFLICT.getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(exception.getMessage()));
     }
 
     @Test
@@ -296,7 +324,7 @@ public class TaskControllerTest {
 
         Pageable pageable = PageRequest.of(0,10);
         TaskResponse taskResponse = new TaskResponse(mockTaskUUID,"title","description"
-                ,TaskStatus.TODO,TaskPriority.MEDIUM,Instant.now());
+                ,TaskStatus.TODO,TaskPriority.MEDIUM,Instant.now(),0L);
         Page<TaskResponse> response = new PageImpl<>(List.of(taskResponse));
         Mockito.when(taskService.getTasksByProject(mockWorkspaceUUID,mockProjectUUID,pageable)).thenReturn(response);
         mockMvc.perform(get(baseUrl,mockWorkspaceUUID,mockProjectUUID)

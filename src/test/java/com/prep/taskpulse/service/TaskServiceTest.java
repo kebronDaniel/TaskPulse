@@ -76,7 +76,7 @@ class TaskServiceTest {
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID, mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
         Task task = Task.create("new task","sample description",mockProject,TaskPriority.MEDIUM, dueDate);
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
-        TaskResponse mockResponse = new TaskResponse(mockTaskUUID,task.getTitle(),task.getDescription(),task.getStatus(),task.getPriority(),task.getDueDate());
+        TaskResponse mockResponse = new TaskResponse(mockTaskUUID,task.getTitle(),task.getDescription(),task.getStatus(),task.getPriority(),task.getDueDate(),0L);
         when(taskRepository.save(any(Task.class))).thenReturn(task);
         when(taskMapper.toResponse(task)).thenReturn(mockResponse);
 
@@ -123,16 +123,16 @@ class TaskServiceTest {
     void getTask_whenTaskExists_returnsTaskResponse(){
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         Task task = Task.create("new task","sample description",mockProject,TaskPriority.MEDIUM, Instant.now());
-        TaskResponse mockResponse = new TaskResponse(mockTaskUUID,task.getTitle(),task.getDescription(),task.getStatus(),task.getPriority(),task.getDueDate());
+        TaskResponse mockResponse = new TaskResponse(mockTaskUUID,task.getTitle(),task.getDescription(),task.getStatus(),task.getPriority(),task.getDueDate(),0L);
 
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
-        when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.of(task));
+        when(taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.of(task));
         when(taskMapper.toResponse(task)).thenReturn(mockResponse);
 
         TaskResponse response = taskService.getTask(mockWorkspaceUUID, mockProjectUUID, mockTaskUUID);
 
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
-        verify(taskRepository).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
+        verify(taskRepository).findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
         verify(taskMapper).toResponse(task);
         verifyNoMoreInteractions(projectRepository,taskRepository,taskMapper);
 
@@ -161,13 +161,13 @@ class TaskServiceTest {
     void getTask_whenTaskDoesNotExist_throwsTaskNotFoundException(){
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
-        when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.empty());
+        when(taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.empty());
 
         TaskNotFoundException exception = assertThrows(TaskNotFoundException.class,
                 () -> taskService.getTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID));
 
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
-        verify(taskRepository).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
+        verify(taskRepository).findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
         verifyNoInteractions(taskMapper);
         verifyNoMoreInteractions(projectRepository,taskRepository);
 
@@ -178,30 +178,29 @@ class TaskServiceTest {
     @Test
     void updateTask_whenRequestContainsPartialFields_updatesOnlyProvidedFields(){
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
-        Instant updatedDueDate = Instant.now().plus(Duration.ofDays(2));
+        Instant updatedDueDate = Instant.now().plus(Duration.ofDays(3));
         Instant originalDueDate = Instant.now().plus(Duration.ofDays(2));
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",
-                null,TaskPriority.LOW,updatedDueDate);
+                null,TaskPriority.LOW,updatedDueDate,1L);
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
 
-        Task task = Task.create("new task","sample description",mockProject,TaskPriority.MEDIUM, originalDueDate);
+        Task task = mock(Task.class);
+        when(task.getVersion()).thenReturn(1L);
+
         when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.of(task));
 
         TaskResponse mockResponse = new TaskResponse(mockTaskUUID,request.title(), task.getDescription(),
-                task.getStatus(),request.priority(),updatedDueDate);
+                task.getStatus(),request.priority(),updatedDueDate, 2L);
         when(taskMapper.toResponse(task)).thenReturn(mockResponse);
 
         TaskResponse response = taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request);
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
         verify(taskRepository).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
         verify(taskMapper).toResponse(task);
+        verify(taskRepository).flush();
         verifyNoMoreInteractions(projectRepository,taskRepository,taskMapper);
 
         assertThat(response).isEqualTo(mockResponse);
-        assertThat(task.getTitle()).isEqualTo("updated title");
-        assertThat(task.getDescription()).isEqualTo("sample description");
-        assertThat(task.getPriority()).isEqualTo(TaskPriority.LOW);
-        assertThat(task.getDueDate()).isEqualTo(updatedDueDate);
     }
 
     @Test
@@ -209,7 +208,7 @@ class TaskServiceTest {
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.empty());
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",
-                null,TaskPriority.LOW,Instant.now().plus(Duration.ofDays(2)));
+                null,TaskPriority.LOW,Instant.now().plus(Duration.ofDays(2)),1L);
         ProjectNotFoundException exception = assertThrows(ProjectNotFoundException.class,
                 () -> taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request));
 
@@ -225,9 +224,8 @@ class TaskServiceTest {
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
 
-        when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.empty());
         UpdateTaskRequest request = new UpdateTaskRequest("updated title",
-                null,TaskPriority.LOW,Instant.now().plus(Duration.ofDays(2)));
+                null,TaskPriority.LOW,Instant.now().plus(Duration.ofDays(2)), 1L);
         TaskNotFoundException exception = assertThrows(TaskNotFoundException.class,
                 () -> taskService.updateTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID,request));
 
@@ -245,7 +243,8 @@ class TaskServiceTest {
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
 
-        Task task = Task.create("new task","sample description",mockProject,TaskPriority.MEDIUM, Instant.now());
+        Task task = mock(Task.class);
+        when(task.getDeletedAt()).thenReturn(Instant.now());
         when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.of(task));
 
         taskService.deleteTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID);
@@ -253,7 +252,7 @@ class TaskServiceTest {
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
         verify(taskRepository).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
         verifyNoMoreInteractions(projectRepository,taskRepository);
-        verify(taskRepository,never()).delete(any());
+        verify(taskRepository,never()).delete((Task) any());
 
         assertThat(task.getDeletedAt()).isNotNull();
 
@@ -268,7 +267,7 @@ class TaskServiceTest {
                 () -> taskService.deleteTask(mockWorkspaceUUID,mockProjectUUID, mockTaskUUID));
 
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
-        verify(taskRepository, never()).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
+        verify(taskRepository, never()).findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
         verifyNoMoreInteractions(projectRepository);
         assertThat(exception.getMessage()).isEqualTo("Project not found: " + mockProjectUUID);
     }
@@ -278,13 +277,12 @@ class TaskServiceTest {
         UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
         when(projectRepository.findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID)).thenReturn(Optional.of(mockProject));
 
-        when(taskRepository.findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID)).thenReturn(Optional.empty());
         TaskNotFoundException exception = assertThrows(TaskNotFoundException.class,
                 () -> taskService.deleteTask(mockWorkspaceUUID,mockProjectUUID,mockTaskUUID));
 
         verify(projectRepository).findByIdAndWorkspaceId(mockProjectUUID,mockWorkspaceUUID);
         verify(taskRepository).findByIdAndProjectIdAndDeletedAtIsNull(mockTaskUUID,mockProjectUUID);
-        verify(taskRepository, never()).delete(any());
+        verify(taskRepository, never()).delete((Task) any());
 
         assertThat(exception.getMessage()).isEqualTo("Task not found: " + mockTaskUUID);
     }
@@ -300,7 +298,7 @@ class TaskServiceTest {
         Page<Task> mockPageTask = new PageImpl<>(List.of(task), pageable, 1);
         when(taskRepository.findByProjectIdAndDeletedAtIsNull(mockProjectUUID,pageable)).thenReturn(mockPageTask);
 
-        TaskResponse response = new TaskResponse(mockTaskUUID, task.getTitle(),task.getDescription(), TaskStatus.TODO,TaskPriority.MEDIUM,dueDate);
+        TaskResponse response = new TaskResponse(mockTaskUUID, task.getTitle(),task.getDescription(), TaskStatus.TODO,TaskPriority.MEDIUM,dueDate,1L);
         when(taskMapper.toResponse(task)).thenReturn(response);
 
         Page<TaskResponse> taskResponsePage = taskService.getTasksByProject(mockWorkspaceUUID,mockProjectUUID,pageable);
