@@ -3,6 +3,8 @@ package com.prep.taskpulse.outbox;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Instant;
@@ -29,6 +31,7 @@ public class OutboxEvent {
     @Column(name = "partition_key", nullable = false)
     private String partitionKey;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String payload;
 
