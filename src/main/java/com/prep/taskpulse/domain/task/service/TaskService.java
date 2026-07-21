@@ -4,13 +4,16 @@ import com.prep.taskpulse.config.CacheConfig;
 import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.project.repository.ProjectRepository;
 import com.prep.taskpulse.domain.task.Task;
+import com.prep.taskpulse.domain.task.TaskEvent;
 import com.prep.taskpulse.domain.task.dto.*;
+import com.prep.taskpulse.domain.task.enums.TaskEventType;
 import com.prep.taskpulse.domain.task.mapper.TaskMapper;
 import com.prep.taskpulse.domain.task.repository.TaskRepository;
 import com.prep.taskpulse.domain.task.repository.TaskSpecifications;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
+import com.prep.taskpulse.outbox.service.OutboxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,6 +23,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -31,6 +35,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final TaskMapper taskMapper;
+    private final OutboxService outboxService;
 
     @Transactional
     public TaskResponse createTask(UUID workspaceId, UUID projectId, CreateTaskRequest request){
@@ -40,6 +45,12 @@ public class TaskService {
 
         Task task = Task.create(request.title(), request.description(),project,request.priority(),request.dueDate());
         Task savedTask = taskRepository.save(task);
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.UPDATED
+                ,savedTask.getId()
+                ,project.getId()
+                ,workspaceId
+                ,savedTask.getAssignee() != null ? savedTask.getAssignee().getId() : null, Instant.now());
+        outboxService.save(taskEvent);
         return taskMapper.toResponse(savedTask);
     }
 
@@ -71,6 +82,14 @@ public class TaskService {
         if (request.dueDate() != null) task.reschedule(request.dueDate());
 
         taskRepository.flush();
+
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.CREATED
+                ,task.getId()
+                ,projectId
+                ,workspaceId
+                ,task.getAssignee() != null ? task.getAssignee().getId() : null, Instant.now());
+        outboxService.save(taskEvent);
+
         return taskMapper.toResponse(task);
     }
 
@@ -110,6 +129,5 @@ public class TaskService {
         Page<Task> tasks = taskRepository.findAll(specification,pageable);
         return tasks.map(taskMapper::toResponse);
     }
-
 
 }
