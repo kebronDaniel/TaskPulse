@@ -29,9 +29,22 @@ app:
       secret: ${JWT_SECRET}
       expiration-ms: 90000
 
+
+taskflow:
+  kafka:
+    topics:
+      task-events: task-events
+  outbox:
+    publisher-delay-ms: 5000
+    max-attempts: 5
+    recovery-delay-ms: 60000
+
 logging:
   level:
     org.springframework.cache: TRACE
     org.springframework.data.redis.cache: TRACE
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
+
+
+
