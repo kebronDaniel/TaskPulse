@@ -41,25 +41,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
         if (count == null){
-                filterChain.doFilter(request,response);
-                return; // Fail open when Redis returns no script result.
-            }
-            response.setHeader("X-RateLimit-Limit", String.valueOf(LIMIT));
-            response.setHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, (LIMIT - count))));
+            filterChain.doFilter(request,response);
+            return; // Fail open when Redis returns no script result.
+        }
+        response.setHeader("X-RateLimit-Limit", String.valueOf(LIMIT));
+        response.setHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, (LIMIT - count))));
 
-            if (count > LIMIT){
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setHeader("Retry-After", String.valueOf(WINDOW_SECONDS));
-                response.setContentType("application/problem+json");
-                response.getWriter().write("""
-                    {
-                      "status": 429,
-                      "title": "Too Many Requests",
-                      "detail": "Rate limit exceeded"
-                    }
-                    """);
-                return;
-            }
+        if (count > LIMIT){
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.setHeader("Retry-After", String.valueOf(WINDOW_SECONDS));
+            response.setContentType("application/problem+json");
+            response.getWriter().write("""
+                {
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "detail": "Rate limit exceeded"
+                }
+                """);
+            return;
+        }
         filterChain.doFilter(request,response);
     }
 
