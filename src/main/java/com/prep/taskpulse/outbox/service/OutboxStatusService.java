@@ -34,6 +34,13 @@ public class OutboxStatusService {
         event.recordFailure(error, outboxProperties.maxAttempts());
     }
 
+    @Transactional
+    public void defer(UUID eventId, String error){
+        OutboxEvent event = getEvent(eventId);
+        if (event.getStatus() != OutboxStatus.PROCESSING) return;
+        event.defer(error);
+    }
+
     private OutboxEvent getEvent(UUID eventId){
         return outboxRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Outbox event not found: " + eventId));
