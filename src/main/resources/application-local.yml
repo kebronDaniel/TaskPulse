@@ -43,7 +43,7 @@ taskflow:
 resilience4j:
   circuitbreaker:
     instances:
-      emailService:
+      kafkaPublisher:
         sliding-window-type: COUNT_BASED
         sliding-window-size: 10 # evaluate 10 calls
         minimum-number-of-calls: 10 # take at least 10 calls
