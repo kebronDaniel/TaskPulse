@@ -5,6 +5,7 @@ import com.prep.taskpulse.outbox.OutboxMessage;
 import com.prep.taskpulse.outbox.OutboxStatus;
 import com.prep.taskpulse.outbox.publisher.EventPublisher;
 import com.prep.taskpulse.outbox.repository.OutboxRepository;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,18 +27,23 @@ public class OutboxEventProcessor {
         try {
             taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
             outboxStatusService.markPublished(message.eventId());
-        } catch (CompletionException exception){
-            outboxStatusService.recordFailure(message.eventId(),rootCauseMessage(exception));
-        } catch (RuntimeException exception){
-            outboxStatusService.recordFailure(message.eventId(),rootCauseMessage(exception));
+        }
+        catch (RuntimeException exception){
+            Throwable error = rootCause(exception);
+            String errorMessage = error.getMessage();
+            if (exception instanceof CallNotPermittedException){
+                outboxStatusService.defer(message.eventId(),errorMessage);
+            } else {
+                outboxStatusService.recordFailure(message.eventId(),errorMessage);
+            }
         }
 
     }
 
-    private String rootCauseMessage(Throwable throwable) {
+    private Throwable rootCause(Throwable throwable) {
         Throwable cause = throwable.getCause() != null
                 ? throwable.getCause()
                 : throwable;
-        return cause.getMessage();
+        return cause;
     }
 }
