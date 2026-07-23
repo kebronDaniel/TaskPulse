@@ -59,16 +59,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, metrics
-    endpoint:
-      health:
-        show-details: ALWAYS
-      metrics:
-        show-details: ALWAYS
+        include: health,metrics
+  endpoint:
     health:
-      circuit-breakers:
-        enabled: true # make sure infra doesn't use this to restart since a faulty email service shouldn't restart the app.
-
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true # make sure infra doesn't use this to restart since a faulty email service shouldn't restart the app.
 
 logging:
   level:
