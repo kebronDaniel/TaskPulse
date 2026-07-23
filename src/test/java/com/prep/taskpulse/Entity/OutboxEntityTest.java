@@ -43,7 +43,6 @@ class OutboxEntityTest {
     @Test
     void recordFailure_whenEventIsPending_throwsException(){
         Instant occurredAt = Instant.parse("2026-07-21T10:00:00Z");
-        Instant firstClaim = occurredAt.plusSeconds(2);
         OutboxEvent event = OutboxEvent.create("TASK", UUID.randomUUID(),
                 TaskEventType.CREATED.name(),"981842c5-4377-4220-b330-ecd719f1d462",
                 "payload",occurredAt);
