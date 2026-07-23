@@ -31,11 +31,10 @@ public class Notification extends BaseEntity {
 
         if ((message == null) || (message.isBlank())) throw new IllegalArgumentException("Notification message must not be null");
         if (recipient == null) throw new IllegalArgumentException("Recipient must not be null");
-        if (type == null) this.type = NotificationType.TASK_CREATED;
+        this.type = (type == null) ? NotificationType.TASK_CREATED : type;
 
         this.message = message;
         this.recipient = recipient;
-        this.type = type;
     }
 
     public static Notification create(String message, User recipient, NotificationType type){
