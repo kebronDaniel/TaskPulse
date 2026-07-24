@@ -3,6 +3,7 @@ package com.prep.taskpulse.integration;
 import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.project.repository.ProjectRepository;
 import com.prep.taskpulse.domain.task.Task;
+import com.prep.taskpulse.domain.task.TaskEvent;
 import com.prep.taskpulse.domain.task.dto.TaskResponse;
 import com.prep.taskpulse.domain.task.dto.UpdateTaskRequest;
 import com.prep.taskpulse.domain.task.enums.TaskPriority;
@@ -13,8 +14,10 @@ import com.prep.taskpulse.domain.task.service.TaskService;
 import com.prep.taskpulse.domain.user.Role;
 import com.prep.taskpulse.domain.user.User;
 import com.prep.taskpulse.domain.workspace.Workspace;
+import com.prep.taskpulse.outbox.service.OutboxService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,6 +69,9 @@ class TaskCacheIntegrationTest {
 
     @MockitoBean
     private ProjectRepository projectRepository;
+
+    @MockitoBean
+    private OutboxService outboxService;
 
     @BeforeEach
     void clearCache(){

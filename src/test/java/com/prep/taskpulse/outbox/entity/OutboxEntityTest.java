@@ -1,4 +1,4 @@
-package com.prep.taskpulse.Entity;
+package com.prep.taskpulse.outbox.entity;
 
 import com.prep.taskpulse.domain.task.enums.TaskEventType;
 import com.prep.taskpulse.outbox.OutboxEvent;
