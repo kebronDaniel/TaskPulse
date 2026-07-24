@@ -70,7 +70,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                         && !(authentication instanceof AnonymousAuthenticationToken);
 
         if (isAuthenticatedUser) return "user:" + authentication.getName();
-        return "ip:" + request.getRequestURI();
+        return "ip:" + request.getRemoteAddr();
     }
 
     private Long executeAtomicIncrement(String key) {
