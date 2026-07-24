@@ -41,9 +41,13 @@ public class OutboxEventProcessor {
     }
 
     private Throwable rootCause(Throwable throwable) {
-        Throwable cause = throwable.getCause() != null
-                ? throwable.getCause()
-                : throwable;
-        return cause;
+        Throwable current = throwable;
+        // its a loop that is to get the bottom of the issue like pilling an onion.
+        // the second one part of the condition is to protect against self caused exception.
+        // meaning if an error is caused by itself then it would break the loop.
+        while (current.getCause() != null && current.getCause() != current){
+            current = current.getCause();
+        }
+        return current;
     }
 }
