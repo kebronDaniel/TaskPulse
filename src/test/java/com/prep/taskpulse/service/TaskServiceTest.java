@@ -16,6 +16,7 @@ import com.prep.taskpulse.domain.user.User;
 import com.prep.taskpulse.domain.workspace.Workspace;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
+import com.prep.taskpulse.outbox.service.OutboxService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +58,9 @@ class TaskServiceTest {
 
     @Mock
     private TaskMapper taskMapper;
+
+    @Mock
+    private OutboxService outboxService;
 
     @InjectMocks
     private TaskService taskService;
