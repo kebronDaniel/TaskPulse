@@ -1,6 +1,7 @@
 package com.prep.taskpulse.security;
 
 import com.prep.taskpulse.security.jwt.JwtAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -50,6 +52,21 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
+                // JWT filter → Rate-limit filter → authorization → controller
+    }
+
+    @Bean
+    public FilterRegistrationBean<RateLimitFilter> disableRateLimitFilterAutoRegistration(
+            RateLimitFilter filter
+    ) {
+        // 1. Wrap the existing RateLimitFilter bean
+        FilterRegistrationBean<RateLimitFilter> registration =
+                new FilterRegistrationBean<>(filter);
+
+        // 2. Tell Spring Boot NOT to register it in the main Servlet container chain
+        registration.setEnabled(false);
+        return registration;
     }
 }

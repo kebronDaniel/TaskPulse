@@ -109,4 +109,14 @@ public class OutboxEvent {
     public void retry(){
         this.status = OutboxStatus.PENDING;
     }
+
+    public void defer(String error){
+
+        if (this.status != OutboxStatus.PROCESSING)
+            throw new IllegalStateException("Only PROCESSING events can be deferred");
+
+        this.status = OutboxStatus.PENDING;
+        this.claimedAt = null;
+        this.lastError = error;
+    }
 }

@@ -1,4 +1,4 @@
-package com.prep.taskpulse.Entity;
+package com.prep.taskpulse.outbox.entity;
 
 import com.prep.taskpulse.domain.task.enums.TaskEventType;
 import com.prep.taskpulse.outbox.OutboxEvent;
@@ -43,7 +43,6 @@ class OutboxEntityTest {
     @Test
     void recordFailure_whenEventIsPending_throwsException(){
         Instant occurredAt = Instant.parse("2026-07-21T10:00:00Z");
-        Instant firstClaim = occurredAt.plusSeconds(2);
         OutboxEvent event = OutboxEvent.create("TASK", UUID.randomUUID(),
                 TaskEventType.CREATED.name(),"981842c5-4377-4220-b330-ecd719f1d462",
                 "payload",occurredAt);
@@ -70,6 +69,22 @@ class OutboxEntityTest {
         assertThat(event.getStatus()).isEqualTo(OutboxStatus.PENDING);
         assertThat(event.getClaimedAt()).isNull();
 
+    }
+
+    @Test
+    void defer_whenEventIsUnableToReachKafka_markAsPending(){
+        Instant occurredAt = Instant.parse("2026-07-21T10:00:00Z");
+        Instant firstClaim = occurredAt.plusSeconds(2);
+        OutboxEvent event = OutboxEvent.create("TASK", UUID.randomUUID(),
+                TaskEventType.CREATED.name(),"981842c5-4377-4220-b330-ecd719f1d462",
+                "payload",occurredAt);
+        event.markProcessing(firstClaim);
+        String deferErrorMessage = "kafka is down";
+        event.defer(deferErrorMessage);
+
+        assertThat(event.getStatus()).isEqualTo(OutboxStatus.PENDING);
+        assertThat(event.getLastError()).isEqualTo(deferErrorMessage);
+        assertThat(event.getClaimedAt()).isNull();
     }
 
 

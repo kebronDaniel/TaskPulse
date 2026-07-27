@@ -1,5 +1,6 @@
 package com.prep.taskpulse.outbox.publisher;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -18,6 +19,7 @@ public class KafkaTaskEventPublisher implements EventPublisher {
     private String topics;
 
     @Override
+    @CircuitBreaker(name = "kafkaPublisher")
     public CompletableFuture<Void> publish(String key, String payload) {
         return kafkaTemplate.send(topics,key,payload).thenApply(result -> null);
     }

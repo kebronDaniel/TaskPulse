@@ -11,6 +11,7 @@ import com.prep.taskpulse.domain.task.service.TaskService;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
+import com.prep.taskpulse.security.RateLimitFilter;
 import com.prep.taskpulse.security.jwt.JwtService;
 import com.prep.taskpulse.security.service.TaskFlowUserDetailsService;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +56,9 @@ public class TaskControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
 
     @MockitoBean
     private TaskFlowUserDetailsService taskFlowUserDetailsService;

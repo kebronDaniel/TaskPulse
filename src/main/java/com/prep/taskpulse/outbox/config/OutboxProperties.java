@@ -9,6 +9,6 @@ public record OutboxProperties(int batchSize, int maxAttempts, Duration claimTim
     public OutboxProperties{
         if (batchSize <= 0) batchSize = 100;
         if (maxAttempts <= 0) maxAttempts = 5;
-        if (claimTimeout == null) claimTimeout =Duration.ofMinutes(5);
+        if (claimTimeout == null) claimTimeout = Duration.ofMinutes(5);
     }
 }
