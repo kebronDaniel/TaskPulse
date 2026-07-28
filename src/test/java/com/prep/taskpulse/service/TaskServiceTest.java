@@ -17,6 +17,8 @@ import com.prep.taskpulse.domain.workspace.Workspace;
 import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import com.prep.taskpulse.outbox.service.OutboxService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +64,12 @@ class TaskServiceTest {
     @Mock
     private OutboxService outboxService;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter taskCreatedCounter;
+
     @InjectMocks
     private TaskService taskService;
 
@@ -85,6 +93,9 @@ class TaskServiceTest {
         when(taskMapper.toResponse(task)).thenReturn(mockResponse);
 
         CreateTaskRequest request = new CreateTaskRequest("new task","sample description", TaskPriority.MEDIUM, dueDate);
+
+        when(meterRegistry.counter("taskflow.tasks.created")).thenReturn(taskCreatedCounter);
+
         TaskResponse response = taskService.createTask(mockWorkspaceUUID,mockProjectUUID,request);
 
         assertThat(response).isEqualTo(mockResponse);
@@ -104,6 +115,9 @@ class TaskServiceTest {
         verify(taskMapper).toResponse(mapperTaskCaptor.capture());
         Task taskSentToMapper = mapperTaskCaptor.getValue();
         assertThat(taskSentToMapper.getTitle()).isEqualTo("new task");
+
+        // the meterRegistry.counter returns a counter class, we check if increment was called.
+        verify(taskCreatedCounter, times(1)).increment();
 
         verifyNoMoreInteractions(projectRepository,taskRepository,taskMapper);
 
