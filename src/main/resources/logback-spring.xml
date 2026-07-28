@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProfile name="local">
+        <appender name="LOCAL_STDOUT"
+                  class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <charset>UTF-8</charset>
+                <pattern>
+                    %d{HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-}] %logger{36} - %msg%n
+                </pattern>
+            </encoder>
+        </appender>
+
+        <root level="DEBUG">
+            <appender-ref ref="LOCAL_STDOUT"/>
+        </root>
+    </springProfile>
+
+
+    <springProfile name="!local">
+        <appender name="JSON_STDOUT"
+                  class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>correlationId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>eventId</includeMdcKeyName>
+
+                <customFields>
+                    {"service":"taskpulse","version":"${APP_VERSION:-dev}"}
+                </customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_STDOUT"/>
+        </root>
+    </springProfile>
+
+</configuration>
