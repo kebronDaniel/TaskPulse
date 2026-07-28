@@ -23,6 +23,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
+        // looks for a header that comes with a valid value under X-Correlation-Id or generates one
         String correlationId = resolveCorrelationId(request.getHeader(HEADER_NAME));
         MDC.put(MDC_KEY, correlationId);
 
@@ -36,6 +37,16 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     }
 
     private String resolveCorrelationId(String value){
+
+        if (value == null || value.isBlank()) return UUID.randomUUID().toString();
+
+        String candidate = value.trim();
+        try {
+            UUID parsed = UUID.fromString(candidate);
+            if (parsed.toString().equalsIgnoreCase(candidate)) return parsed.toString();
+        } catch (IllegalArgumentException exception){
+            // silently swallows the exception
+        }
         return UUID.randomUUID().toString();
     }
 }
