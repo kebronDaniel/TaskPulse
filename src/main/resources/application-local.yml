@@ -27,7 +27,7 @@ app:
   security:
     jwt:
       secret: ${JWT_SECRET:c3VwZXItc2VjcmV0LWxvY2FsLWRldi1rZXktZm9yLWhzNTEyLXNpZ25pbmctdmVyeS1sb25nLXNlY3VyZS1rZXk=}
-      expiration-ms: 90000
+      expiration-ms: 900000
 
 
 taskflow:
