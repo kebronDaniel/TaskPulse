@@ -45,7 +45,7 @@ public class TaskService {
 
         Task task = Task.create(request.title(), request.description(),project,request.priority(),request.dueDate());
         Task savedTask = taskRepository.save(task);
-        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.UPDATED
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.CREATED
                 ,savedTask.getId()
                 ,project.getId()
                 ,workspaceId
@@ -83,7 +83,7 @@ public class TaskService {
 
         taskRepository.flush();
 
-        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.CREATED
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.UPDATED
                 ,task.getId()
                 ,projectId
                 ,workspaceId
