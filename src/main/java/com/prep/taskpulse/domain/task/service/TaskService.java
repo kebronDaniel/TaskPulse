@@ -14,6 +14,7 @@ import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import com.prep.taskpulse.outbox.service.OutboxService;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -36,6 +37,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final TaskMapper taskMapper;
     private final OutboxService outboxService;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public TaskResponse createTask(UUID workspaceId, UUID projectId, CreateTaskRequest request){
@@ -51,6 +53,7 @@ public class TaskService {
                 ,workspaceId
                 ,savedTask.getAssignee() != null ? savedTask.getAssignee().getId() : null, Instant.now());
         outboxService.save(taskEvent);
+        meterRegistry.counter("taskflow.tasks.created").increment();
         return taskMapper.toResponse(savedTask);
     }
 
