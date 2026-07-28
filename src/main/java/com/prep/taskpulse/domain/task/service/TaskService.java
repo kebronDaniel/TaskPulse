@@ -14,6 +14,7 @@ import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import com.prep.taskpulse.outbox.service.OutboxService;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -121,6 +122,12 @@ public class TaskService {
         return taskRepository.findTaskSummariesByProjectId(projectId,pageable);
     }
 
+    @Timed(
+            value = "taskflow.tasks.search",
+            description = "task service search latency",
+            percentiles = {0.5,0.95,0.99}, // takes values at 50th, 95th and 99th and use them as boundary values.
+            histogram = true
+    )
     public Page<TaskResponse> searchTasks(UUID workspaceId, UUID projectId,
                                           TaskSearchCriteria criteria, Pageable pageable){
 
