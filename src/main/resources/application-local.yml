@@ -59,13 +59,23 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,metrics,prometheus
   endpoint:
     health:
       show-details: always
   health:
     circuitbreakers:
       enabled: true # make sure infra doesn't use this to restart since a faulty email service shouldn't restart the app.
+  observations:
+    annotations:
+      enabled: true # to enable annotations like @observed or @Timed
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
 
 logging:
   level:
