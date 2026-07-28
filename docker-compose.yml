@@ -61,6 +61,12 @@ services:
       timeout: 10s
       retries: 10
 
+  zipkins:
+    image: openzipkin/zipkin:3
+    container_name: taskpulse-zipkin
+    ports:
+      - 9411:9411
+
 volumes:
   postgres_data:
   redis_data:
