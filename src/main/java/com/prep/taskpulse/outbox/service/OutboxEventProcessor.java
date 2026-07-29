@@ -3,6 +3,7 @@ package com.prep.taskpulse.outbox.service;
 import com.prep.taskpulse.outbox.OutboxMessage;
 import com.prep.taskpulse.outbox.publisher.EventPublisher;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -17,10 +18,11 @@ public class OutboxEventProcessor {
     private final OutboxStatusService outboxStatusService;
     private final EventPublisher taskEventPublisher;
 
+    @Observed(name = "taskflow.outbox.process", contextualName = "outbox-process")
     @Transactional
     public void process(OutboxMessage message){
 
-        // assign eventId to the thread MDC
+        // assign eventId to the thread MDC and close once done.
         try (MDC.MDCCloseable ignored = MDC.putCloseable("eventId", message.eventId().toString())){
             taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
             log.atDebug().addKeyValue("outcome", "published").log("Outbox event published");
