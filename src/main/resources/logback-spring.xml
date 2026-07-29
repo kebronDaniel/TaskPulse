@@ -7,7 +7,7 @@
             <encoder>
                 <charset>UTF-8</charset>
                 <pattern>
-                    %d{HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-} eventId=%X{eventId:-} userId=%X{userId:- }] %logger{36} - %msg%n
+                    %d{HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-} eventId=%X{eventId:-} userId=%X{userId:-}] %logger{36} - %msg%n
                 </pattern>
             </encoder>
         </appender>

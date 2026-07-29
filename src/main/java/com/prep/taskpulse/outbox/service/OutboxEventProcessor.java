@@ -24,25 +24,28 @@ public class OutboxEventProcessor {
     public void process(OutboxMessage message){
 
         // assign eventId to the thread MDC and close once done.
+        // this is try with resource (automatic cleanup)
         try (MDC.MDCCloseable ignored = MDC.putCloseable("eventId", message.eventId().toString())){
-            taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
-            log.atDebug().addKeyValue("outcome", "published").log("Outbox event published");
-            outboxStatusService.markPublished(message.eventId());
-        }
-        catch (RuntimeException exception){
-            Throwable error = rootCause(exception);
-            String errorMessage = error.getMessage();
-            if (error instanceof CallNotPermittedException){
-                log.atError().addKeyValue("outcome","failed")
-                        .addKeyValue("reason", errorMessage)
-                        .log("Outbox publication deferred because circuit is open");
-                outboxStatusService.defer(message.eventId(),errorMessage);
-            } else {
-                log.atError().addKeyValue("outcome","failed")
-                        .addKeyValue("exceptionType", error.getClass().getSimpleName())
-                        .setCause(error)
-                        .log("Outbox publication failed");
-                outboxStatusService.recordFailure(message.eventId(),errorMessage);
+            try{
+                taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
+                log.atDebug().addKeyValue("outcome", "published").log("Outbox event published");
+                outboxStatusService.markPublished(message.eventId());
+            }
+            catch (RuntimeException exception){
+                Throwable error = rootCause(exception);
+                String errorMessage = error.getMessage();
+                if (error instanceof CallNotPermittedException){
+                    log.atError().addKeyValue("outcome","deferred")
+                            .addKeyValue("reason", errorMessage)
+                            .log("Outbox publication deferred because circuit is open");
+                    outboxStatusService.defer(message.eventId(),errorMessage);
+                } else {
+                    log.atError().addKeyValue("outcome","failed")
+                            .addKeyValue("exceptionType", error.getClass().getSimpleName())
+                            .setCause(error)
+                            .log("Outbox publication failed");
+                    outboxStatusService.recordFailure(message.eventId(),errorMessage);
+                }
             }
         }
 
