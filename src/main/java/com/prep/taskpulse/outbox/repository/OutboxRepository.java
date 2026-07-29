@@ -23,4 +23,6 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, UUID>{
     )
     List<OutboxEvent> findPendingEventsForUpdate(@Param("batchSize") int batchSize);
     List<OutboxEvent> findByStatusAndClaimedAtBefore(OutboxStatus status, Instant claimedAtBefore);
+
+    double countByStatus(OutboxStatus status);
 }

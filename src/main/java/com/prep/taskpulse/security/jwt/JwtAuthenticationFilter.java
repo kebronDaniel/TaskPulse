@@ -7,7 +7,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -45,6 +47,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // save to the global vault.
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal()
+                instanceof TaskFlowUserDetails userDetails){
+            try (MDC.MDCCloseable ignored = MDC.putCloseable("userId", userDetails.getId().toString())){
+                filterChain.doFilter(request,response);
+            }
+            return;
         }
         filterChain.doFilter(request,response);
     }

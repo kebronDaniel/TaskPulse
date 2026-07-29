@@ -14,6 +14,8 @@ import com.prep.taskpulse.exception.ProjectNotFoundException;
 import com.prep.taskpulse.exception.StaleTaskVersionException;
 import com.prep.taskpulse.exception.TaskNotFoundException;
 import com.prep.taskpulse.outbox.service.OutboxService;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -36,6 +38,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final TaskMapper taskMapper;
     private final OutboxService outboxService;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public TaskResponse createTask(UUID workspaceId, UUID projectId, CreateTaskRequest request){
@@ -45,12 +48,13 @@ public class TaskService {
 
         Task task = Task.create(request.title(), request.description(),project,request.priority(),request.dueDate());
         Task savedTask = taskRepository.save(task);
-        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.UPDATED
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.CREATED
                 ,savedTask.getId()
                 ,project.getId()
                 ,workspaceId
                 ,savedTask.getAssignee() != null ? savedTask.getAssignee().getId() : null, Instant.now());
         outboxService.save(taskEvent);
+        meterRegistry.counter("taskflow.tasks.created").increment();
         return taskMapper.toResponse(savedTask);
     }
 
@@ -83,7 +87,7 @@ public class TaskService {
 
         taskRepository.flush();
 
-        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.CREATED
+        TaskEvent taskEvent = new TaskEvent(UUID.randomUUID(),TaskEventType.UPDATED
                 ,task.getId()
                 ,projectId
                 ,workspaceId
@@ -118,6 +122,12 @@ public class TaskService {
         return taskRepository.findTaskSummariesByProjectId(projectId,pageable);
     }
 
+    @Timed(
+            value = "taskflow.tasks.search",
+            description = "task service search latency",
+            percentiles = {0.5,0.95,0.99}, // takes values at 50th, 95th and 99th and use them as boundary values.
+            histogram = true
+    )
     public Page<TaskResponse> searchTasks(UUID workspaceId, UUID projectId,
                                           TaskSearchCriteria criteria, Pageable pageable){
 

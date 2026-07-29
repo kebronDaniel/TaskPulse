@@ -27,7 +27,7 @@ app:
   security:
     jwt:
       secret: ${JWT_SECRET:c3VwZXItc2VjcmV0LWxvY2FsLWRldi1rZXktZm9yLWhzNTEyLXNpZ25pbmctdmVyeS1sb25nLXNlY3VyZS1rZXk=}
-      expiration-ms: 90000
+      expiration-ms: 900000
 
 
 taskflow:
@@ -59,13 +59,24 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
+      roles: ADMIN
   health:
     circuitbreakers:
       enabled: true # make sure infra doesn't use this to restart since a faulty email service shouldn't restart the app.
+  observations:
+    annotations:
+      enabled: true # to enable annotations like @observed or @Timed
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
 
 logging:
   level:
