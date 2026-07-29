@@ -17,7 +17,7 @@ import java.util.UUID;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {
 
-    static final String HEADER_NAME = "X-Correlation-Id";
+    static final String HEADER_NAME = "X-Correlation-ID";
     static final String MDC_KEY = "correlationId";
 
     @Override
@@ -26,7 +26,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         // looks for a header that comes with a valid value under X-Correlation-Id or generates one
         String correlationId = resolveCorrelationId(request.getHeader(HEADER_NAME));
         MDC.put(MDC_KEY, correlationId);
-
+        // the client can use the returned Id to open a support ticket
+        response.setHeader(HEADER_NAME, correlationId);
         try {
             filterChain.doFilter(request,response);
         } finally {
