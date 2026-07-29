@@ -18,6 +18,7 @@ public class OutboxEventProcessor {
     private final OutboxStatusService outboxStatusService;
     private final EventPublisher taskEventPublisher;
 
+    // to create a parent wrapper over the processes under this producer.
     @Observed(name = "taskflow.outbox.process", contextualName = "outbox-process")
     @Transactional
     public void process(OutboxMessage message){
