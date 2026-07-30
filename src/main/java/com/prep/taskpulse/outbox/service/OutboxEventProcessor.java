@@ -19,6 +19,8 @@ public class OutboxEventProcessor {
     private final EventPublisher taskEventPublisher;
 
     // to create a parent wrapper over the processes under this producer.
+    // name : for metrics (prometheus)
+    // contextual name : display name of the span
     @Observed(name = "taskflow.outbox.process", contextualName = "outbox-process")
     @Transactional
     public void process(OutboxMessage message){
