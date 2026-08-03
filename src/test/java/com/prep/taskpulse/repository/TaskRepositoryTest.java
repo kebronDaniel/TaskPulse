@@ -4,9 +4,11 @@ import com.prep.taskpulse.config.AuditConfig;
 import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.project.repository.ProjectRepository;
 import com.prep.taskpulse.domain.task.Task;
+import com.prep.taskpulse.domain.task.dto.TaskSearchCriteria;
 import com.prep.taskpulse.domain.task.enums.TaskPriority;
 import com.prep.taskpulse.domain.task.enums.TaskStatus;
 import com.prep.taskpulse.domain.task.repository.TaskRepository;
+import com.prep.taskpulse.domain.task.repository.TaskSpecifications;
 import com.prep.taskpulse.domain.user.Role;
 import com.prep.taskpulse.domain.user.User;
 import com.prep.taskpulse.domain.user.repository.UserRepository;
@@ -21,11 +23,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @DataJpaTest
@@ -149,6 +153,78 @@ public class TaskRepositoryTest {
 
         boolean taskExists = taskRepository.existsByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
         assertThat(taskExists).isFalse();
+    }
+
+    @Test
+    void findAll_withCompleteSpecification_returnsOnlyMatchingTask() {
+        Instant now = Instant.now();
+
+        Task matchingTask = Task.create(
+                "matching task",
+                "matches every criterion",
+                savedProject,
+                TaskPriority.HIGH,
+                now.plus(Duration.ofDays(2))
+        );
+        matchingTask.assignTo(savedUser);
+        matchingTask.changeStatus(TaskStatus.IN_PROGRESS);
+        taskRepository.save(matchingTask);
+
+        Task wrongPriorityTask = Task.create(
+                "wrong priority",
+                "must not be returned",
+                savedProject,
+                TaskPriority.LOW,
+                now.plus(Duration.ofDays(2))
+        );
+        wrongPriorityTask.assignTo(savedUser);
+        wrongPriorityTask.changeStatus(TaskStatus.IN_PROGRESS);
+        taskRepository.save(wrongPriorityTask);
+
+        taskRepository.flush();
+
+        TaskSearchCriteria criteria = new TaskSearchCriteria(
+                TaskPriority.HIGH,
+                TaskStatus.IN_PROGRESS,
+                savedUser.getId(),
+                now.plus(Duration.ofDays(3)),
+                now.minus(Duration.ofMinutes(1))
+        );
+
+        List<Task> result = taskRepository.findAll(
+                TaskSpecifications.fromCriteria(savedProject.getId(), criteria)
+        );
+
+        assertThat(result)
+                .extracting(Task::getId)
+                .containsExactly(matchingTask.getId());
+    }
+
+    @Test
+    void findAll_withEmptyCriteria_returnsActiveProjectTasksOnly(){
+        Task task = Task.create(
+                "new task",
+                "new task desc",
+                savedProject,
+                TaskPriority.LOW,
+                Instant.now().plus(Duration.ofDays(2))
+        );
+        Task savedTask = taskRepository.save(task);
+
+        Task deletedTask = Task.create(
+                "deleted task",
+                "new task to be removed",
+                savedProject,
+                TaskPriority.LOW,
+                Instant.now().plus(Duration.ofDays(2))
+        );
+        deletedTask.deleteTask();
+        taskRepository.flush();
+
+        TaskSearchCriteria criteria = new TaskSearchCriteria(null,null,null,null,null);
+
+        List<Task> taskList = taskRepository.findAll(TaskSpecifications.fromCriteria(savedProject.getId(),criteria));
+        assertThat(taskList).extracting(Task::getId).contains(savedTask.getId()).doesNotContain(deletedTask.getId());
     }
 
 
