@@ -22,7 +22,7 @@ RUN groupadd --system taskpulse \
         taskpulse
 
 COPY --from=builder --chown=taskpulse:taskpulse \
-     /workspace/target/Taskpulse-*.jar app.jar
+     /workspace/target/TaskPulse-*.jar app.jar
 
 USER taskpulse
 
