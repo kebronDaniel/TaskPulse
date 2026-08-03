@@ -1,0 +1,114 @@
+name: TaskPulse CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+  jobs:
+    verify:
+      name: verify
+      runs-on: ubuntu-latest
+
+      services:
+        postgres:
+          image: postgres:16-alpine
+          env:
+            POSTGRES_USER: taskpulse_user
+            POSTGRES_PASSWORD: taskPulse
+            POSTGRES_DB: taskPulse
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd "pg_isready -U taskpulse_user -d taskPulse"
+            --health-interval 5s
+            --health-timeout 5s
+            --health-retries 10
+
+        redis:
+          image: redis:7-alpine
+          ports:
+            - 6379:6379
+          options: >-
+            --health-cmd "redis-cli ping"
+            --health-interval 5s
+            --health-timeout 5s
+            --health-retries 10
+      env:
+        SPRING_PROFILES_ACTIVE: local
+        DB_NAME: taskPulse
+        DB_USERNAME: taskpulse_user
+        DB_PASSWORD: taskPulse
+        JWT_SECRET: 0123456789012345678901234567890123456789012345678901234567890123
+
+
+      steps:
+        - name: Check out source
+          uses: actions/checkout@v4
+
+        - name: Set up Java 17
+          uses: actions/setup-java@v4
+          with:
+            distribution: temurin
+            java-version: "17"
+            cache: maven
+
+        - name: Verify
+          run: ./mvnw -B verify
+
+        - name: Upload test reports on failure
+          if: failure()
+          uses: actions/upload-artifact@v4
+          with:
+            name: test-reports
+            path: target/surefire-reports
+            if-no-files-found: ignore
+
+    image:
+      name: Build image
+      runs-on: Ubuntu-latest
+      needs: verify
+
+      permissions:
+        contents: read
+        packages: write
+
+      steps:
+        - name: Check out source
+          uses: actions/checkout@v4
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+
+        - name: Generate image metadata
+          id: metadata
+          uses: docker/metadata-action@v5
+          with:
+            images: ghcr.io/${{ github.repository }}
+            tags: |
+              type=raw,value=${{ github.sha }}
+              type=raw,value=latest,enable={{is_default_branch}}
+
+        - name: Log in to GHCR
+          if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Build and optionally publish image
+          uses: docker/build-push-action@v6
+          with:
+            context: .
+            push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            tags: ${{ steps.metadata.outputs.tags }}
+            labels: ${{ steps.metadata.outputs.labels }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max

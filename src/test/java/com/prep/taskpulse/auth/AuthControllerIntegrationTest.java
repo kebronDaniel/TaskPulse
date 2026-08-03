@@ -152,10 +152,6 @@ public class AuthControllerIntegrationTest {
     @Test
     void protectedEndpoint_withValidJwt_returnsNotFoundInsteadOfUnauthorized() throws Exception{
 
-        UUID mockWorkspaceUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174111");
-        UUID mockProjectUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174222");
-        UUID mockTaskUUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174333");
-
         String hashPassword = passwordEncoder.encode("testmark");
         User user = User.createUser("Mark","mark@gmail.com",hashPassword, Role.USER);
         userRepository.save(user);
@@ -170,7 +166,7 @@ public class AuthControllerIntegrationTest {
         String jwt = JsonPath.read(responseBody,"$.accessToken");
 
         mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/projects/{projectId}/tasks/{taskId}"
-                ,mockWorkspaceUUID,mockProjectUUID,mockTaskUUID)
+                ,UUID.randomUUID(),UUID.randomUUID(),UUID.randomUUID())
                 .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isNotFound());
     }
