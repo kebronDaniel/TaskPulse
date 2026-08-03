@@ -18,6 +18,7 @@
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<resilience4j.version>2.3.0</resilience4j.version>
 		<logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+		<jacoco.version>0.8.15</jacoco.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -88,10 +89,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -195,6 +192,28 @@
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+
+					<execution>
+						<id>generate-report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
