@@ -45,7 +45,6 @@ jobs:
       DB_NAME: taskPulse
       DB_USERNAME: taskpulse_user
       DB_PASSWORD: taskPulse
-      JWT_SECRET: uFr4aI3e4wkI5OIVJAv/oCzrrBxW7gOl2TFx4nUwotpH4VGpbj1rWZIMydUUJCxEPeKXN5DKzKmOpTp1Frhpbg==
 
 
     steps:
