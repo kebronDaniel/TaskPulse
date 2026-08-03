@@ -50,8 +50,8 @@ class TaskCacheIntegrationTest {
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry dynamicPropertyRegistry){
-        dynamicPropertyRegistry.add("spring.data.registry.host", redis::getHost);
-        dynamicPropertyRegistry.add("spring.data.registry.port", () -> redis.getMappedPort(6379));
+        dynamicPropertyRegistry.add("spring.data.redis.host", redis::getHost);
+        dynamicPropertyRegistry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
     }
 
 
