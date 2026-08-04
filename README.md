@@ -30,3 +30,16 @@ TaskPulse is a production-oriented task management REST API built with Java 17 a
 - Prometheus metrics and distributed tracing
 - Multi-stage, non-root Docker image
 - CI-enforced tests and minimum 80% line coverage
+
+## Local development
+
+### Prerequisites
+
+- Java 17
+- Docker
+- Maven Wrapper included in the repository
+
+Start only the infrastructure services:
+
+```bash
+docker compose up -d postgres redis zookeeper kafka zipkins
