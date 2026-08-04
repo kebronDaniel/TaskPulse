@@ -1,3 +1,6 @@
+server:
+  shutdown: graceful
+
 spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
@@ -43,7 +46,7 @@ taskflow:
     publisher-delay-ms: ${OUTBOX_PUBLISHER_DELAY_MS:5000}
     recovery-delay-ms: ${OUTBOX_RECOVERY_DELAY_MS:60000}
     batch-size: ${OUTBOX_BATCH_SIZE:100}
-    max-attempts: ${OUTBOX_MAX_ATTEMPT:5}
+    max-attempts: ${OUTBOX_MAX_ATTEMPTS:5}
     claim-timeout: ${OUTBOX_CLAIM_TIMEOUT:5m}
 
 
