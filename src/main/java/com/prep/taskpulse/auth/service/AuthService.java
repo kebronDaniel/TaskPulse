@@ -22,33 +22,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
+  private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
+  private final AuthenticationManager authenticationManager;
 
-    public AuthResponse register(RegisterRequest request){
+  public AuthResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByEmailAndDeletedAtIsNull(request.email()))
-            throw new EmailAlreadyExistsException();
+    if (userRepository.existsByEmailAndDeletedAtIsNull(request.email()))
+      throw new EmailAlreadyExistsException();
 
-        String passwordHash = passwordEncoder.encode(request.password());
+    String passwordHash = passwordEncoder.encode(request.password());
 
-        User user = User.createUser(request.fullName(),request.email(),passwordHash,Role.USER);
-        User savedUser = userRepository.save(user);
+    User user = User.createUser(request.fullName(), request.email(), passwordHash, Role.USER);
+    User savedUser = userRepository.save(user);
 
-        String jwt = jwtService.generateToken(new TaskFlowUserDetails(savedUser));
-        return new AuthResponse(jwt,"Bearer");
-    }
+    String jwt = jwtService.generateToken(new TaskFlowUserDetails(savedUser));
+    return new AuthResponse(jwt, "Bearer");
+  }
 
-    public AuthResponse login(LoginRequest request){
-        // Does all these TaskFlowUserDetailsService, UserRepository, PasswordEncoder.matches(...)
-        Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+  public AuthResponse login(LoginRequest request) {
+    // Does all these TaskFlowUserDetailsService, UserRepository, PasswordEncoder.matches(...)
+    Authentication authentication =
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
-        TaskFlowUserDetails userDetails = (TaskFlowUserDetails) authentication.getPrincipal();
-        String jwt = jwtService.generateToken(userDetails);
-        // the client can use this for later stateless requests.
-        return new AuthResponse(jwt,"Bearer");
-    }
+    TaskFlowUserDetails userDetails = (TaskFlowUserDetails) authentication.getPrincipal();
+    String jwt = jwtService.generateToken(userDetails);
+    // the client can use this for later stateless requests.
+    return new AuthResponse(jwt, "Bearer");
+  }
 }

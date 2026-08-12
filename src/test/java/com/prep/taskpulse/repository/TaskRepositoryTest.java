@@ -1,5 +1,7 @@
 package com.prep.taskpulse.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.prep.taskpulse.config.AuditConfig;
 import com.prep.taskpulse.domain.project.Project;
 import com.prep.taskpulse.domain.project.repository.ProjectRepository;
@@ -14,6 +16,10 @@ import com.prep.taskpulse.domain.user.User;
 import com.prep.taskpulse.domain.user.repository.UserRepository;
 import com.prep.taskpulse.domain.workspace.Workspace;
 import com.prep.taskpulse.domain.workspace.repository.WorkspaceRepository;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,209 +29,240 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(AuditConfig.class)
 public class TaskRepositoryTest {
 
-    @Autowired
-    private TaskRepository taskRepository;
+  @Autowired private TaskRepository taskRepository;
 
-    @Autowired
-    private WorkspaceRepository workspaceRepository;
+  @Autowired private WorkspaceRepository workspaceRepository;
 
-    @Autowired
-    private ProjectRepository projectRepository;
+  @Autowired private ProjectRepository projectRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-    private User savedUser;
-    private Project savedProject;
+  private User savedUser;
+  private Project savedProject;
 
-    @BeforeEach
-    void setUp(){
-        User user = User.createUser("test user","test@gmail.com","1254345123", Role.USER);
-        savedUser = userRepository.save(user);
+  @BeforeEach
+  void setUp() {
+    User user = User.createUser("test user", "test@gmail.com", "1254345123", Role.USER);
+    savedUser = userRepository.save(user);
 
-        Workspace workspace = Workspace.create("test workspace",user);
-        workspaceRepository.save(workspace);
+    Workspace workspace = Workspace.create("test workspace", user);
+    workspaceRepository.save(workspace);
 
-        Project project = Project.create("test project","test description",workspace);
-        savedProject = projectRepository.save(project);
-    }
+    Project project = Project.create("test project", "test description", workspace);
+    savedProject = projectRepository.save(project);
+  }
 
+  @Test
+  void findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskActive_returnsTask() {
 
-    @Test
-    void findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskActive_returnsTask(){
+    Task mockTask =
+        Task.create(
+            "test task",
+            "test task description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask.assignTo(savedUser);
+    Task savedTask = taskRepository.save(mockTask);
 
-        Task mockTask = Task.create("test task","test task description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask.assignTo(savedUser);
-        Task savedTask = taskRepository.save(mockTask);
+    Optional<Task> task =
+        taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(
+            savedTask.getId(), savedProject.getId());
 
-        Optional<Task> task = taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
+    assertThat(task).isNotNull();
+    assertThat(task.get().getTitle()).isEqualTo(savedTask.getTitle());
+    assertThat(task.get().getDescription()).isEqualTo(savedTask.getDescription());
+    assertThat(task.get().getProject()).isEqualTo(savedTask.getProject());
+    assertThat(task.get().getPriority()).isEqualTo(TaskPriority.MEDIUM);
+    assertThat(task.get().getStatus()).isEqualTo(TaskStatus.TODO);
+    assertThat(task.get().getAssignee()).isEqualTo(savedUser);
+    assertThat(task.get().getDeletedAt()).isNull();
+  }
 
-        assertThat(task).isNotNull();
-        assertThat(task.get().getTitle()).isEqualTo(savedTask.getTitle());
-        assertThat(task.get().getDescription()).isEqualTo(savedTask.getDescription());
-        assertThat(task.get().getProject()).isEqualTo(savedTask.getProject());
-        assertThat(task.get().getPriority()).isEqualTo(TaskPriority.MEDIUM);
-        assertThat(task.get().getStatus()).isEqualTo(TaskStatus.TODO);
-        assertThat(task.get().getAssignee()).isEqualTo(savedUser);
-        assertThat(task.get().getDeletedAt()).isNull();
+  @Test
+  void
+      findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskSoftDeleted_returnsEmpty() {
 
-    }
+    Task mockTask =
+        Task.create(
+            "test task",
+            "test task description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask.assignTo(savedUser);
+    mockTask.deleteTask();
+    Task savedTask = taskRepository.save(mockTask);
 
-    @Test
-    void findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull_whenTaskSoftDeleted_returnsEmpty(){
+    Optional<Task> task =
+        taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(
+            savedTask.getId(), savedProject.getId());
+    assertThat(savedTask.getDeletedAt()).isNotNull();
+    assertThat(task).isEmpty();
+  }
 
-        Task mockTask = Task.create("test task","test task description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask.assignTo(savedUser);
-        mockTask.deleteTask();
-        Task savedTask = taskRepository.save(mockTask);
+  @Test
+  void findByProjectIdAndDeletedAtIsNull_returnsOnlyActiveTasks() {
 
-        Optional<Task> task = taskRepository.findWithProjectAndAssigneeByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
-        assertThat(savedTask.getDeletedAt()).isNotNull();
-        assertThat(task).isEmpty();
-    }
+    Task mockTask =
+        Task.create(
+            "test task 1",
+            "test task 1 description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask.assignTo(savedUser);
+    Task savedTask = taskRepository.save(mockTask);
 
-    @Test
-    void findByProjectIdAndDeletedAtIsNull_returnsOnlyActiveTasks(){
+    Task mockTask2 =
+        Task.create(
+            "test task 2",
+            "test task 2 description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask2.assignTo(savedUser);
+    Task savedTask2 = taskRepository.save(mockTask2);
 
-        Task mockTask = Task.create("test task 1","test task 1 description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask.assignTo(savedUser);
-        Task savedTask = taskRepository.save(mockTask);
+    Task deletedTask =
+        Task.create(
+            "test task 3",
+            "test task 3 description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    deletedTask.assignTo(savedUser);
+    deletedTask.deleteTask();
+    taskRepository.save(deletedTask);
 
-        Task mockTask2 = Task.create("test task 2","test task 2 description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask2.assignTo(savedUser);
-        Task savedTask2 = taskRepository.save(mockTask2);
+    Pageable pageable = PageRequest.of(0, 10);
 
-        Task deletedTask = Task.create("test task 3","test task 3 description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        deletedTask.assignTo(savedUser);
-        deletedTask.deleteTask();
-        taskRepository.save(deletedTask);
+    Page<Task> tasks =
+        taskRepository.findByProjectIdAndDeletedAtIsNull(savedProject.getId(), pageable);
+    assertThat(tasks).isNotNull();
+    assertThat(tasks.getTotalPages()).isEqualTo(1);
+    assertThat(tasks.getTotalElements()).isEqualTo(2);
+    assertThat(tasks.getContent().get(0)).isEqualTo(savedTask);
+    assertThat(tasks.getContent()).extracting(task -> task.getId()).contains(savedTask.getId());
+    assertThat(tasks.getContent())
+        .extracting(Task::getTitle)
+        .containsExactlyInAnyOrder(savedTask.getTitle(), savedTask2.getTitle())
+        .doesNotContain(deletedTask.getTitle());
+  }
 
-        Pageable pageable = PageRequest.of(0,10);
+  @Test
+  void existsByIdAndProjectIdAndDeletedAtIsNull_returnsTrue() {
+    Task mockTask =
+        Task.create(
+            "test task 1",
+            "test task 1 description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask.assignTo(savedUser);
+    Task savedTask = taskRepository.save(mockTask);
 
-        Page<Task> tasks = taskRepository.findByProjectIdAndDeletedAtIsNull(savedProject.getId(),pageable);
-        assertThat(tasks).isNotNull();
-        assertThat(tasks.getTotalPages()).isEqualTo(1);
-        assertThat(tasks.getTotalElements()).isEqualTo(2);
-        assertThat(tasks.getContent().get(0)).isEqualTo(savedTask);
-        assertThat(tasks.getContent()).extracting(task -> task.getId()).contains(savedTask.getId());
-        assertThat(tasks.getContent()).extracting(Task::getTitle)
-                .containsExactlyInAnyOrder(savedTask.getTitle(),savedTask2.getTitle())
-                .doesNotContain(deletedTask.getTitle());
-    }
+    boolean taskExists =
+        taskRepository.existsByIdAndProjectIdAndDeletedAtIsNull(
+            savedTask.getId(), savedProject.getId());
+    assertThat(taskExists).isTrue();
+  }
 
-    @Test
-    void existsByIdAndProjectIdAndDeletedAtIsNull_returnsTrue(){
-        Task mockTask = Task.create("test task 1","test task 1 description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask.assignTo(savedUser);
-        Task savedTask = taskRepository.save(mockTask);
+  @Test
+  void existsByIdAndProjectIdAndDeletedAtIsNull_whenTaskIsDeleted_returnsFalse() {
+    Task mockTask =
+        Task.create(
+            "test task 1",
+            "test task 1 description",
+            savedProject,
+            null,
+            Instant.now().plus(Duration.ofDays(2)));
+    mockTask.assignTo(savedUser);
+    mockTask.deleteTask();
+    Task savedTask = taskRepository.save(mockTask);
 
-        boolean taskExists = taskRepository.existsByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
-        assertThat(taskExists).isTrue();
-    }
+    boolean taskExists =
+        taskRepository.existsByIdAndProjectIdAndDeletedAtIsNull(
+            savedTask.getId(), savedProject.getId());
+    assertThat(taskExists).isFalse();
+  }
 
-    @Test
-    void existsByIdAndProjectIdAndDeletedAtIsNull_whenTaskIsDeleted_returnsFalse(){
-        Task mockTask = Task.create("test task 1","test task 1 description"
-                ,savedProject,null, Instant.now().plus(Duration.ofDays(2)));
-        mockTask.assignTo(savedUser);
-        mockTask.deleteTask();
-        Task savedTask = taskRepository.save(mockTask);
+  @Test
+  void findAll_withCompleteSpecification_returnsOnlyMatchingTask() {
+    Instant now = Instant.now();
 
-        boolean taskExists = taskRepository.existsByIdAndProjectIdAndDeletedAtIsNull(savedTask.getId(),savedProject.getId());
-        assertThat(taskExists).isFalse();
-    }
+    Task matchingTask =
+        Task.create(
+            "matching task",
+            "matches every criterion",
+            savedProject,
+            TaskPriority.HIGH,
+            now.plus(Duration.ofDays(2)));
+    matchingTask.assignTo(savedUser);
+    matchingTask.changeStatus(TaskStatus.IN_PROGRESS);
+    taskRepository.save(matchingTask);
 
-    @Test
-    void findAll_withCompleteSpecification_returnsOnlyMatchingTask() {
-        Instant now = Instant.now();
+    Task wrongPriorityTask =
+        Task.create(
+            "wrong priority",
+            "must not be returned",
+            savedProject,
+            TaskPriority.LOW,
+            now.plus(Duration.ofDays(2)));
+    wrongPriorityTask.assignTo(savedUser);
+    wrongPriorityTask.changeStatus(TaskStatus.IN_PROGRESS);
+    taskRepository.save(wrongPriorityTask);
 
-        Task matchingTask = Task.create(
-                "matching task",
-                "matches every criterion",
-                savedProject,
-                TaskPriority.HIGH,
-                now.plus(Duration.ofDays(2))
-        );
-        matchingTask.assignTo(savedUser);
-        matchingTask.changeStatus(TaskStatus.IN_PROGRESS);
-        taskRepository.save(matchingTask);
+    taskRepository.flush();
 
-        Task wrongPriorityTask = Task.create(
-                "wrong priority",
-                "must not be returned",
-                savedProject,
-                TaskPriority.LOW,
-                now.plus(Duration.ofDays(2))
-        );
-        wrongPriorityTask.assignTo(savedUser);
-        wrongPriorityTask.changeStatus(TaskStatus.IN_PROGRESS);
-        taskRepository.save(wrongPriorityTask);
+    TaskSearchCriteria criteria =
+        new TaskSearchCriteria(
+            TaskPriority.HIGH,
+            TaskStatus.IN_PROGRESS,
+            savedUser.getId(),
+            now.plus(Duration.ofDays(3)),
+            now.minus(Duration.ofMinutes(1)));
 
-        taskRepository.flush();
+    List<Task> result =
+        taskRepository.findAll(TaskSpecifications.fromCriteria(savedProject.getId(), criteria));
 
-        TaskSearchCriteria criteria = new TaskSearchCriteria(
-                TaskPriority.HIGH,
-                TaskStatus.IN_PROGRESS,
-                savedUser.getId(),
-                now.plus(Duration.ofDays(3)),
-                now.minus(Duration.ofMinutes(1))
-        );
+    assertThat(result).extracting(Task::getId).containsExactly(matchingTask.getId());
+  }
 
-        List<Task> result = taskRepository.findAll(
-                TaskSpecifications.fromCriteria(savedProject.getId(), criteria)
-        );
+  @Test
+  void findAll_withEmptyCriteria_returnsActiveProjectTasksOnly() {
+    Task task =
+        Task.create(
+            "new task",
+            "new task desc",
+            savedProject,
+            TaskPriority.LOW,
+            Instant.now().plus(Duration.ofDays(2)));
+    Task savedTask = taskRepository.save(task);
 
-        assertThat(result)
-                .extracting(Task::getId)
-                .containsExactly(matchingTask.getId());
-    }
+    Task deletedTask =
+        Task.create(
+            "deleted task",
+            "new task to be removed",
+            savedProject,
+            TaskPriority.LOW,
+            Instant.now().plus(Duration.ofDays(2)));
+    deletedTask.deleteTask();
+    taskRepository.flush();
 
-    @Test
-    void findAll_withEmptyCriteria_returnsActiveProjectTasksOnly(){
-        Task task = Task.create(
-                "new task",
-                "new task desc",
-                savedProject,
-                TaskPriority.LOW,
-                Instant.now().plus(Duration.ofDays(2))
-        );
-        Task savedTask = taskRepository.save(task);
+    TaskSearchCriteria criteria = new TaskSearchCriteria(null, null, null, null, null);
 
-        Task deletedTask = Task.create(
-                "deleted task",
-                "new task to be removed",
-                savedProject,
-                TaskPriority.LOW,
-                Instant.now().plus(Duration.ofDays(2))
-        );
-        deletedTask.deleteTask();
-        taskRepository.flush();
-
-        TaskSearchCriteria criteria = new TaskSearchCriteria(null,null,null,null,null);
-
-        List<Task> taskList = taskRepository.findAll(TaskSpecifications.fromCriteria(savedProject.getId(),criteria));
-        assertThat(taskList).extracting(Task::getId).contains(savedTask.getId()).doesNotContain(deletedTask.getId());
-    }
-
-
+    List<Task> taskList =
+        taskRepository.findAll(TaskSpecifications.fromCriteria(savedProject.getId(), criteria));
+    assertThat(taskList)
+        .extracting(Task::getId)
+        .contains(savedTask.getId())
+        .doesNotContain(deletedTask.getId());
+  }
 }

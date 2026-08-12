@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OutboxRecoveryScheduler {
 
-    private final OutboxRecoveryService outboxRecoveryService;
+  private final OutboxRecoveryService outboxRecoveryService;
 
-    @Scheduled(fixedDelayString = "${taskflow.outbox.recovery-delay-ms:60000}")
-    public void recoverStaleClaim(){
-        outboxRecoveryService.releaseClaims();
-    }
+  @Scheduled(fixedDelayString = "${taskflow.outbox.recovery-delay-ms:60000}")
+  public void recoverStaleClaim() {
+    outboxRecoveryService.releaseClaims();
+  }
 }

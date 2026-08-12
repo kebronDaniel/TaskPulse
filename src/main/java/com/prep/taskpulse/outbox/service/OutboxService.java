@@ -9,23 +9,27 @@ import com.prep.taskpulse.outbox.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-
 @Service
 @RequiredArgsConstructor
 public class OutboxService {
 
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+  private final OutboxRepository outboxRepository;
+  private final ObjectMapper objectMapper;
 
-    public void save(TaskEvent event){
-        try {
-            String payload = objectMapper.writeValueAsString(event);
-            OutboxEvent outboxEvent = OutboxEvent.create("TASK",event.taskId()
-                    ,event.type().name(),event.workspaceId().toString(),payload, event.occurredAt());
-            outboxRepository.save(outboxEvent);
-        } catch (JsonProcessingException exception){
-            throw new OutboxSerializationException(event.eventId(),exception);
-        }
+  public void save(TaskEvent event) {
+    try {
+      String payload = objectMapper.writeValueAsString(event);
+      OutboxEvent outboxEvent =
+          OutboxEvent.create(
+              "TASK",
+              event.taskId(),
+              event.type().name(),
+              event.workspaceId().toString(),
+              payload,
+              event.occurredAt());
+      outboxRepository.save(outboxEvent);
+    } catch (JsonProcessingException exception) {
+      throw new OutboxSerializationException(event.eventId(), exception);
     }
+  }
 }

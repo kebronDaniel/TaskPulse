@@ -1,5 +1,7 @@
 package com.prep.taskpulse.domain.task.enums;
 
 public enum TaskEventType {
-    CREATED,UPDATED,DELETED
+  CREATED,
+  UPDATED,
+  DELETED
 }

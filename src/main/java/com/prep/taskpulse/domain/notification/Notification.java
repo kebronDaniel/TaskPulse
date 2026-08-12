@@ -13,35 +13,36 @@ import lombok.NoArgsConstructor;
 @Table(name = "notifications")
 public class Notification extends BaseEntity {
 
-    @Column(nullable = false, length = 500)
-    private String message;
+  @Column(nullable = false, length = 500)
+  private String message;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private NotificationType type = NotificationType.TASK_CREATED;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private NotificationType type = NotificationType.TASK_CREATED;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recipient_id", nullable = false)
-    private User recipient;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "recipient_id", nullable = false)
+  private User recipient;
 
-    @Column(nullable = false)
-    private boolean read = false;
+  @Column(nullable = false)
+  private boolean read = false;
 
-    private Notification(String message, User recipient, NotificationType type) {
+  private Notification(String message, User recipient, NotificationType type) {
 
-        if ((message == null) || (message.isBlank())) throw new IllegalArgumentException("Notification message must not be null");
-        if (recipient == null) throw new IllegalArgumentException("Recipient must not be null");
-        this.type = (type == null) ? NotificationType.TASK_CREATED : type;
+    if ((message == null) || (message.isBlank()))
+      throw new IllegalArgumentException("Notification message must not be null");
+    if (recipient == null) throw new IllegalArgumentException("Recipient must not be null");
+    this.type = (type == null) ? NotificationType.TASK_CREATED : type;
 
-        this.message = message;
-        this.recipient = recipient;
-    }
+    this.message = message;
+    this.recipient = recipient;
+  }
 
-    public static Notification create(String message, User recipient, NotificationType type){
-        return new Notification(message,recipient,type);
-    }
+  public static Notification create(String message, User recipient, NotificationType type) {
+    return new Notification(message, recipient, type);
+  }
 
-    public void markAsRead(){
-        if (!this.read) this.read=true;
-    }
+  public void markAsRead() {
+    if (!this.read) this.read = true;
+  }
 }

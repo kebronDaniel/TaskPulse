@@ -15,52 +15,52 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OutboxEventProcessor {
 
-    private final OutboxStatusService outboxStatusService;
-    private final EventPublisher taskEventPublisher;
+  private final OutboxStatusService outboxStatusService;
+  private final EventPublisher taskEventPublisher;
 
-    // to create a parent wrapper over the processes under this producer.
-    // name : for metrics (prometheus)
-    // contextual name : display name of the span
-    @Observed(name = "taskflow.outbox.process", contextualName = "outbox-process")
-    @Transactional
-    public void process(OutboxMessage message){
+  // to create a parent wrapper over the processes under this producer.
+  // name : for metrics (prometheus)
+  // contextual name : display name of the span
+  @Observed(name = "taskflow.outbox.process", contextualName = "outbox-process")
+  @Transactional
+  public void process(OutboxMessage message) {
 
-        // assign eventId to the thread MDC and close once done.
-        // this is try with resource (automatic cleanup)
-        try (MDC.MDCCloseable ignored = MDC.putCloseable("eventId", message.eventId().toString())){
-            try{
-                taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
-                log.atDebug().addKeyValue("outcome", "published").log("Outbox event published");
-                outboxStatusService.markPublished(message.eventId());
-            }
-            catch (RuntimeException exception){
-                Throwable error = rootCause(exception);
-                String errorMessage = error.getMessage();
-                if (error instanceof CallNotPermittedException){
-                    log.atError().addKeyValue("outcome","deferred")
-                            .addKeyValue("reason", errorMessage)
-                            .log("Outbox publication deferred because circuit is open");
-                    outboxStatusService.defer(message.eventId(),errorMessage);
-                } else {
-                    log.atError().addKeyValue("outcome","failed")
-                            .addKeyValue("exceptionType", error.getClass().getSimpleName())
-                            .setCause(error)
-                            .log("Outbox publication failed");
-                    outboxStatusService.recordFailure(message.eventId(),errorMessage);
-                }
-            }
+    // assign eventId to the thread MDC and close once done.
+    // this is try with resource (automatic cleanup)
+    try (MDC.MDCCloseable ignored = MDC.putCloseable("eventId", message.eventId().toString())) {
+      try {
+        taskEventPublisher.publish(message.partitionKey(), message.payload()).join();
+        log.atDebug().addKeyValue("outcome", "published").log("Outbox event published");
+        outboxStatusService.markPublished(message.eventId());
+      } catch (RuntimeException exception) {
+        Throwable error = rootCause(exception);
+        String errorMessage = error.getMessage();
+        if (error instanceof CallNotPermittedException) {
+          log.atError()
+              .addKeyValue("outcome", "deferred")
+              .addKeyValue("reason", errorMessage)
+              .log("Outbox publication deferred because circuit is open");
+          outboxStatusService.defer(message.eventId(), errorMessage);
+        } else {
+          log.atError()
+              .addKeyValue("outcome", "failed")
+              .addKeyValue("exceptionType", error.getClass().getSimpleName())
+              .setCause(error)
+              .log("Outbox publication failed");
+          outboxStatusService.recordFailure(message.eventId(), errorMessage);
         }
-
+      }
     }
+  }
 
-    private Throwable rootCause(Throwable throwable) {
-        Throwable current = throwable;
-        // its a loop that is to get the bottom of the issue like pilling an onion.
-        // the second one part of the condition is to protect against self caused exception.
-        // meaning if an error is caused by itself then it would break the loop.
-        while (current.getCause() != null && current.getCause() != current){
-            current = current.getCause();
-        }
-        return current;
+  private Throwable rootCause(Throwable throwable) {
+    Throwable current = throwable;
+    // its a loop that is to get the bottom of the issue like pilling an onion.
+    // the second one part of the condition is to protect against self caused exception.
+    // meaning if an error is caused by itself then it would break the loop.
+    while (current.getCause() != null && current.getCause() != current) {
+      current = current.getCause();
     }
+    return current;
+  }
 }

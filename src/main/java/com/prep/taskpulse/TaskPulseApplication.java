@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties(OutboxProperties.class)
 @SpringBootApplication
 public class TaskPulseApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(TaskPulseApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(TaskPulseApplication.class, args);
+  }
 }
