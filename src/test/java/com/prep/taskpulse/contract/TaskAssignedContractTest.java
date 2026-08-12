@@ -78,4 +78,27 @@ class TaskAssignedContractTest {
                 .map(Error::toString)
                 .anyMatch(error -> error.contains("assigneeId") && error.contains("required"));
     }
+
+    @Test
+    void eventWithUnknownOptionalFields_remainsCompatible() throws Exception{
+
+        JsonNode eventWithOptionalFields = OBJECT_MAPPER.readTree("""
+            "eventId": "123e4567-e89b-42d3-a456-426614174001",
+               "eventType": "task.assigned",
+               "schemaVersion": 1,
+               "occurredAt": "2026-08-12T10:15:30Z",
+               "producer": "taskpulse",
+               "traceId" : "trace123",
+               "data": {
+                 "taskId": "123e4567-e89b-42d3-a456-426614174002",
+                 "projectId": "123e4567-e89b-42d3-a456-426614174003",
+                 "workspaceId": "123e4567-e89b-42d3-a456-426614174004",
+                 "assigneeId": "123e4567-e89b-42d3-a456-426614174005",
+                 "taskTitle": "Prepare the quarterly report"
+               }
+        """);
+
+        List<Error> errors = schema.validate(eventWithOptionalFields);
+        assertThat(errors).isNotEmpty();
+    }
 }
