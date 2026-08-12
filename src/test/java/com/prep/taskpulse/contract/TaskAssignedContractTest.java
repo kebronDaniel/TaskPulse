@@ -41,4 +41,41 @@ class TaskAssignedContractTest {
         List<Error> errors = schema.validate(example);
         assertThat(errors).isEmpty();
     }
+
+    @Test
+    void invalidEvent_isRejected() throws Exception {
+        JsonNode invalidEvent = OBJECT_MAPPER.readTree("""
+        {
+          "eventId": "not-a-uuid",
+          "eventType": "task.assigned",
+          "schemaVersion": 1,
+          "occurredAt": "not-a-timestamp",
+          "producer": "taskpulse",
+          "data": {
+            "taskId": "123e4567-e89b-42d3-a456-426614174002",
+            "projectId": "123e4567-e89b-42d3-a456-426614174003",
+            "workspaceId": "123e4567-e89b-42d3-a456-426614174004",
+            "taskTitle": ""
+          }
+        }
+        """);
+
+        List<Error> errors = schema.validate(invalidEvent);
+
+        assertThat(errors).isNotEmpty();
+
+        assertThat(errors)
+                .extracting(Error::getInstanceLocation)
+                .map(Object::toString)
+                .contains(
+                    "/eventId",
+                    "/occurredAt",
+                    "/data/taskTitle",
+                    "/data"
+                );
+
+        assertThat(errors)
+                .map(Error::toString)
+                .anyMatch(error -> error.contains("assigneeId") && error.contains("required"));
+    }
 }
